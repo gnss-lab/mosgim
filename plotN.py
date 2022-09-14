@@ -231,7 +231,7 @@ nbig = 15  # max order of spherical harmonic expansion
 mbig = 15  # max degree of spherical harmonic expansion (0 <= mbig <= nbig)
 nT = 24  # number of time steps
 
-data = np.load('res_data_rel_gm_2017_002_lcp.npz', allow_pickle=True)
+data = np.load('res_data_rel_modip300_2017_002_lcp.npz', allow_pickle=True)
 res = data['res']
 
 

@@ -240,8 +240,9 @@ def getContInt(time, tec, lon, lat, el,  maxgap=30, maxjump=1):
 
 
 header = ['datetime', 'el', 'ipp_lat', 'ipp_lon', 'tec']
+dtype=zip(header,(object, float, float, float, float))
 convert = lambda x: datetime.strptime(x.decode("utf-8"), "%Y-%m-%dT%H:%M:%S")
-rootdir = '/home/teufel/PycharmProjects/MosGIM_new/tec-suite/tec_gnss/2017/002/'
+rootdir = '~/mosgim/002/'
 time0 = datetime(2017, 1, 2)
 derivative = False
 
@@ -252,7 +253,7 @@ Atec = Atime = Along = Alat = Ael = Atime_ref = Along_ref = Alat_ref = Ael_ref =
 
 for subdir, dirs, files in os.walk(rootdir):
     for file in files:
-
+        print(file)
         filepath = subdir + os.sep + file
 
         if filepath.endswith(".dat"):
@@ -260,6 +261,7 @@ for subdir, dirs, files in os.walk(rootdir):
 
             try:            
                 data = np.genfromtxt(filepath, comments='#', names=header, dtype=(object, float, float, float, float), converters={"datetime": convert},  unpack=True)
+                data = {k: arr for k, arr in zip(header, data)}
                 tt = sec_of_day(data['datetime'])                
                 idx, intervals = getContInt(tt, data['tec'], data['ipp_lon'], data['ipp_lat'], data['el'],  maxgap=35., maxjump=2.)
 
@@ -332,7 +334,7 @@ for subdir, dirs, files in os.walk(rootdir):
                     else: 
                         print('too short interval')
 
-            except:
+            except Exception:
                 print('warning')
 
 
@@ -340,7 +342,7 @@ print ('number of observations', len(Atec))
 
 
 
-print 'preparing coordinate system'
+print ('preparing coordinate system')
 
 
 mcolat, mlt = geo2modip(np.pi/2 - np.deg2rad(Alat), np.deg2rad(Along), Atime)  # modip coordinates in rad
@@ -350,7 +352,7 @@ mcolat1, mlt1 = geo2mag(np.pi/2 - np.deg2rad(Alat), np.deg2rad(Along), Atime)  #
 mcolat1_ref, mlt1_ref = geo2mag(np.pi/2 - np.deg2rad(Alat_ref), np.deg2rad(Along_ref), Atime_ref)  
 
 
-print 'saving input data'
+print ('saving input data')
 
 
 np.savez('input_data_rel_modip300_2017_002.npz', day=time0,

@@ -171,7 +171,7 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, mlt_chunks, mcolat
     N = np.zeros((n_coefs * (nT + 1), n_coefs * (nT + 1)))
     b = np.zeros(n_coefs * (nT + 1))
 
-    for c_time, c_mlt, c_mcolat, c_el, c_time_ref, c_mlt_ref, c_mcolat_ref, c_el_ref, c_rhs  in itertools.izip(time_chunks, mlt_chunks, mcolat_chunks, el_chunks, time_ref_chunks, 
+    for c_time, c_mlt, c_mcolat, c_el, c_time_ref, c_mlt_ref, c_mcolat_ref, c_el_ref, c_rhs  in zip(time_chunks, mlt_chunks, mcolat_chunks, el_chunks, time_ref_chunks, 
                                                                                                                mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, rhs_chunks):
     
         NN, bb = construct_normal_system(nbig, mbig, nT, ndays, c_time, c_mlt, c_mcolat, c_el, c_time_ref, c_mlt_ref, c_mcolat_ref, c_el_ref, c_rhs) 
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     el_ref = data['el_ref']
     rhs = data['rhs']
 
-    nchunks = np.int(len(rhs) / 120000) # set chuncks size to fit in memory ~8Gb
+    nchunks = np.int(len(rhs) / 60000) # set chuncks size to fit in memory ~4Gb
 
     print('start, nbig=%s, mbig=%s, nT=%s, ndays=%s, sigma0=%s, sigma_v=%s, number of observations=%s, number of chuncks=%s' % (nbig, mbig, nT, ndays, sigma0, sigma_v, len(rhs), nchunks))
 
@@ -236,4 +236,4 @@ if __name__ == '__main__':
                                 time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, rhs_chunks) 
 
 
-    np.savez(outputfile, res=res) #, N=N)
+    np.savez(outputfile, res=res, N=N)

@@ -98,8 +98,8 @@ time_m = np.array([int(_ / (len(colat) * len(mlt))) for _ in range(len(colat) * 
 G = construct(nbig, mbig, np.deg2rad(mlt_m), np.deg2rad(colat_m), time_m)
 
 
-inputfile = 'res_data_rel_gm_2017_002.npz'
-outputfile = 'res_data_rel_gm_2017_002_lcp.npz'
+inputfile = 'res_data_rel_modip300_2017_002.npz'
+outputfile = 'res_data_rel_modip300_2017_002_lcp.npz'
 
 
 # load data
@@ -120,7 +120,7 @@ idx = (w<0)
 Gnew = G[idx,:]
 wnew = Gnew.dot(c0)
 
-print 'constructing M'
+print('constructing M')
 
 NGT = Ninv * Gnew.transpose()
 M = Gnew.dot(NGT)

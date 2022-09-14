@@ -1,0 +1,7 @@
+numpy==1.23.3
+scipy==1.9.1
+pyIGRF==0.3.3
+celluloid==0.2.0
+matplotlib==3.5.3
+git+https://github.com/AndyLamperski/lemkelcp
+
