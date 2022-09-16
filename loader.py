@@ -1,10 +1,15 @@
 import os
 import time
 import numpy as np
+import h5py
 from datetime import datetime
 from warnings import warn
 from collections import defaultdict
 from pathlib import Path
+
+
+from geo import HM
+from geo import sub_ionospheric
 
 
 class Loader():
@@ -63,3 +68,36 @@ class LoaderTxt(Loader):
                     print(f'{sat_file} not processed. Reason: {e}')
             print(f'{site} contribute {count} files, takes {time.time() - st}')
 
+
+class LoaderHDF(Loader):
+    
+    def __init__(self, hdf_path):
+        super().__init__()
+        self.hdf_path = hdf_path
+        self.hdf_file = h5py.File(hdf_path, 'r')
+    
+    def generate_data(self):
+        for site in self.hdf_file:
+            slat = self.hdf_file[site].attrs['lat']
+            slon = self.hdf_file[site].attrs['lon']
+            st = time.time()
+            count = 0
+            for sat in self.hdf_file[site]:
+                sat_data = self.hdf_file[site][sat]
+                arr = np.empty((len(sat_data['tec']),), 
+                               list(zip(self.FIELDS,self.DTYPE)))
+                el = sat_data['elevation'][:]
+                az = sat_data['azimuth'][:]
+                ts = sat_data['timestamp'][:]
+                ipp_lat, ipp_lon = sub_ionospheric(slat, slon, HM, az, el)
+                arr['datetime'] = np.array([datetime.utcfromtimestamp(float(t)) for t in ts])
+                arr['el'] = np.rad2deg(el)
+                arr['ipp_lat'] = np.rad2deg(ipp_lat)
+                arr['ipp_lon'] = np.rad2deg(ipp_lon)
+                arr['tec'] = sat_data['tec'][:]
+                count += 1
+                yield arr, sat + '_' + site
+            print(f'{site} contribute {count} files, takes {time.time() - st}')
+
+                
+                

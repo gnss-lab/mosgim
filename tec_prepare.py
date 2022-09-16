@@ -6,13 +6,23 @@ from datetime import datetime
 from scipy.signal import savgol_filter
 from collections import defaultdict
 from pathlib import Path
+from enum import Enum
 
 from geomag import geo2mag
 from geomag import geo2modip
 from time_util import sec_of_day, sec_of_interval
-from loader import LoaderTxt
+from loader import LoaderTxt, LoaderHDF
 
-def process_files(data_generator):
+
+class DataSourceType(Enum):
+    hdf = 'hdf'
+    rinex = 'rinex'
+    txt = 'txt'
+
+    def __str__(self):
+        return self.value
+
+def process_data(data_generator):
     all_data = defaultdict(list)
     count = 0
     for data, data_id in data_generator:
@@ -42,7 +52,7 @@ def getContInt(times, tec, lon, lat, el,  maxgap=30, maxjump=1):
     r = r[idx]
     intervals = []
     if len(r) == 0:
-        return intervals
+        return idx, intervals
     beginning = r[0]
     last = r[0]
     last_time = times[last]
@@ -59,9 +69,11 @@ def getContInt(times, tec, lon, lat, el,  maxgap=30, maxjump=1):
 def process_intervals(data, maxgap, maxjump, derivative, 
                       short = 3600, sparse = 600):
     result = defaultdict(list)
-    tt = sec_of_day(data['datetime'])           
-    idx, intervals = getContInt(tt, data['tec'], data['ipp_lon'],
-                                                data['ipp_lat'], data['el'],  maxgap=35., maxjump=2.)
+    tt = sec_of_day(data['datetime'])        
+    idx, intervals = getContInt(tt, 
+                                data['tec'], data['ipp_lon'],
+                                data['ipp_lat'], data['el'],  
+                                maxgap=maxgap, maxjump=maxjump)
     #_, intervals = get_continuos_intervals(data, maxgap=maxgap, maxjump=maxjump)
     for start, fin in intervals:
         if (tt[fin] - tt[start]) < short:    # disgard all the arcs shorter than 1 hour
@@ -145,8 +157,11 @@ def save_data(comb, modip_file, mag_file, day_date):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Prepare data from txt, hdf, or RInEx')
-    parser.add_argument('--root', 
+    parser.add_argument('--data_path', 
                         type=Path, 
+                        help='Path to data, content depends on format')
+    parser.add_argument('--data_source', 
+                        type=DataSourceType, 
                         help='Path to data, content depends on format')
     parser.add_argument('--date',  
                         type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
@@ -160,10 +175,14 @@ if __name__ == '__main__':
                         default=Path('/tmp/prepared_mag.npz'),
                         help='Path to file with results, for magnetic lat')
     args = parser.parse_args()
-    loader = LoaderTxt(args.root)
-    process_date = args.date
-    data_generator = loader.generate_data()
-    data = process_files(data_generator)
+    if args.data_source == DataSourceType.hdf:
+        loader = LoaderHDF(args.data_path)
+        data_generator = loader.generate_data()
+    if args.data_source == DataSourceType.txt:
+        loader = LoaderTxt(args.data_path)
+        process_date = args.date
+        data_generator = loader.generate_data()
+    data = process_data(data_generator)
     combined_data = combine_data(data)
     print('Start magnetic calculations...')
     st = time.time()
