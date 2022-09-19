@@ -13,6 +13,43 @@ from geomag import geo2modip
 from time_util import sec_of_day, sec_of_interval
 from loader import LoaderTxt, LoaderHDF
 
+sites = ['019b', '7odm', 'ab02', 'ab06', 'ab09', 'ab11', 'ab12', 'ab13',
+         'ab15', 'ab17', 'ab21', 'ab27', 'ab33', 'ab35', 'ab37', 'ab41',
+         'ab45', 'ab48', 'ab49', 'ac03', 'ac21', 'ac61', 'acor', 'acso',
+         'adis', 'ahid', 'aira', 'ajac', 'albh', 'alg3', 'alic', 'alme',
+         'alon', 'alrt', 'alth', 'amc2', 'ankr', 'antc', 'areq', 'artu',
+         'aruc', 'asky', 'aspa', 'auck', 'badg', 'baie', 'bake', 'bald',
+         'bamo', 'bara', 'barh', 'bcyi', 'bell', 'benn', 'berp', 'bilb',
+         'bjco', 'bjfs', 'bjnm', 'bla1', 'bluf', 'bogi', 'bogt', 'braz',
+         'brip', 'brst', 'brux', 'bshm', 'bucu', 'budp', 'bums', 'buri',
+         'bzrg', 'cand', 'cant', 'capf', 'cas1', 'casc', 'ccj2', 'cedu',
+         'chan', 'chiz', 'chpi', 'chti', 'chur', 'cihl', 'cjtr', 'ckis',
+         'clrk', 'cmbl', 'cn00', 'cn04', 'cn09', 'cn13', 'cn20', 'cn22',
+         'cn23', 'cn40', 'cnmr', 'coco', 'con2', 'cord', 'coyq', 'crao',
+         'cusv', 'daej', 'dakr', 'dane', 'darw', 'dav1', 'devi', 'dgar',
+         'dgjg', 'drao', 'dubo', 'ecsd', 'ela2', 'eur2', 'faa1', 'falk',
+         'fall', 'ffmj', 'flin', 'flrs', 'func', 'g101', 'g107', 'g117',
+         'g124', 'g201', 'g202', 'ganp', 'gisb', 'glps', 'gls1', 'gls2',
+         'gls3', 'glsv', 'gmma', 'gode', 'guat', 'guax', 'harb', 'hces',
+         'hdil', 'helg', 'hlfx', 'hmbg', 'hnlc', 'hob2', 'hofn', 'holm',
+         'howe', 'hsmn', 'hueg', 'ibiz', 'iisc', 'ilsg', 'inmn', 'invk',
+         'iqal', 'iqqe', 'irkj', 'isba', 'isco', 'ista', 'joen', 'karr',
+         'kely', 'khar', 'khlr', 'kir0', 'kiri', 'kour', 'ksnb', 'ksu1',
+         'kuuj', 'kvtx', 'lamp', 'laut', 'lcsb', 'lhaz', 'lkwy', 'lovj',
+         'lply', 'lthw', 'mac1', 'mag0', 'mal2', 'mar6', 'marg', 'mas1',
+         'mat1', 'maw1', 'mcar', 'mdvj', 'mkea', 'mobs', 'moiu', 'morp',
+         'nain', 'naur', 'nium', 'nnor', 'noa1', 'not1', 'novm', 'nril',
+         'nya1', 'ohi2', 'ons1', 'p008', 'p038', 'p050', 'p776', 'p778',
+         'p803', 'palm', 'parc', 'park', 'pece', 'penc', 'pets', 'pimo',
+         'pirt', 'pngm', 'pol2', 'pove', 'qaar', 'qaq1', 'qiki', 'recf',
+         'reso', 'riop', 'rmbo', 'salu', 'sask', 'savo', 'sch2', 'scor',
+         'sg27', 'sgoc', 'shao', 'soda', 'stas', 'stew', 'sthl', 'stj2',
+         'sumk', 'suth', 'syog', 'tash', 'tehn', 'tetn', 'tixg', 'tomo',
+         'tor2', 'tow2', 'trds', 'tro1', 'tuc2', 'tuva', 'udec', 'ufpr',
+         'ulab', 'unbj', 'unpm', 'urum', 'usmx', 'vacs', 'vars', 'vis0',
+         'vlns', 'whit', 'whng', 'whtm', 'will', 'wind', 'wway', 'xmis',
+         'yakt', 'yell', 'ykro', 'ymer', 'zamb']
+
 
 class DataSourceType(Enum):
     hdf = 'hdf'
@@ -177,7 +214,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.data_source == DataSourceType.hdf:
         loader = LoaderHDF(args.data_path)
-        data_generator = loader.generate_data()
+        data_generator = loader.generate_data(sites=sites)
     if args.data_source == DataSourceType.txt:
         loader = LoaderTxt(args.data_path)
         process_date = args.date

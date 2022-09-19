@@ -53,10 +53,12 @@ class LoaderTxt(Loader):
         #data = append_fields(data, 'sec_of_day', tt, np.float)
         return data
 
-    def generate_data(self):
+    def generate_data(self, sites=[]):
         files = self.get_files(self.root_dir)
         print(f'Collected {len(files)} sites')
         for site, site_files in files.items():
+            if sites and not site in sites:
+                continue
             count = 0
             st = time.time()
             for sat_file in site_files:
@@ -76,8 +78,10 @@ class LoaderHDF(Loader):
         self.hdf_path = hdf_path
         self.hdf_file = h5py.File(hdf_path, 'r')
     
-    def generate_data(self):
+    def generate_data(self, sites=[]):
         for site in self.hdf_file:
+            if sites and not site in sites:
+                continue
             slat = self.hdf_file[site].attrs['lat']
             slon = self.hdf_file[site].attrs['lon']
             st = time.time()
