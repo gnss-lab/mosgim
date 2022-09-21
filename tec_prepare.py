@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import concurrent.futures
 
 from numpy import deg2rad as rad
 from datetime import datetime
@@ -7,6 +8,7 @@ from scipy.signal import savgol_filter
 from collections import defaultdict
 from pathlib import Path
 from enum import Enum
+from concurrent.futures import ProcessPoolExecutor
 
 from geomag import geo2mag
 from geomag import geo2modip
@@ -50,6 +52,7 @@ sites = ['019b', '7odm', 'ab02', 'ab06', 'ab09', 'ab11', 'ab12', 'ab13',
          'vlns', 'whit', 'whng', 'whtm', 'will', 'wind', 'wway', 'xmis',
          'yakt', 'yell', 'ykro', 'ymer', 'zamb']
 
+#sites = sites[22:28]
 
 class DataSourceType(Enum):
     hdf = 'hdf'
@@ -139,27 +142,53 @@ def process_intervals(data, maxgap, maxjump, derivative,
         result['ref'].append(data_ref)
     return result
     
-def combine_data(all_data):
+def combine_data(all_data, nchunks=1):
     count = 0
     for arr in all_data['dtec']:
         count += arr.shape[0]
+    tec_data = np.concatenate(tuple(o for o in all_data['dtec']))
     out_data = np.concatenate(tuple(o for o in all_data['out']))
     ref_data = np.concatenate(tuple(r for r in all_data['ref']))
     fields = ['tec', 'time', 'lon', 'lat', 'el', 'rtime', 'rlon', 'rlat', 'rel',
               'colat_mdip', 'mlt_mdip', 'rcolat_mdip', 'rmlt_mdip',
               'colat_mag', 'mlt_mag', 'rcolat_mag', 'rmlt_mag']
-    comb = {f: np.zeros((count,)) for f in fields}
-    #fields = {k: i for i, k in enumerate(fields)}
-    comb['tec'] = all_data['dtec'][:]
-    comb['time'] = out_data['datetime'][:]
-    comb['lon'] = out_data['ipp_lon'][:]
-    comb['lat'] = out_data['ipp_lat'][:]
-    comb['el'] = out_data['el'][:]
-    comb['rtime'] = ref_data['datetime'][:]
-    comb['rlon'] = ref_data['ipp_lon'][:]
-    comb['rlat'] = ref_data['ipp_lat'][:]
-    comb['rel'] = ref_data['el'][:]
-    return comb
+    combs = []
+    ichunks = get_chunk_indexes(count, nchunks)
+    for i, (start, fin) in enumerate(ichunks):
+        print(start, fin)
+        comb = dict()
+        #fields = {k: i for i, k in enumerate(fields)}
+        comb['tec'] = tec_data[start:fin]
+        _out_data = out_data[start:fin]
+        comb['time'] = _out_data['datetime']
+        comb['lon'] = _out_data['ipp_lon']
+        comb['lat'] = _out_data['ipp_lat']
+        comb['el'] = _out_data['el']
+        _ref_data = out_data[start:fin]
+        comb['rtime'] = _ref_data['datetime']
+        comb['rlon'] = _ref_data['ipp_lon']
+        comb['rlat'] = _ref_data['ipp_lat']
+        comb['rel'] = _ref_data['el']
+        for f in fields:
+            if f in comb:
+                continue
+            comb[f] = np.zeros(comb['tec'].shape)
+        combs.append(comb)
+    return combs
+
+
+def get_chunk_indexes(size, nchunks):
+    if nchunks > 1:
+        step = int(size / nchunks)
+        ichunks = [(i-step, i) for i in range(step, size, step)]
+        if (size - ichunks[-1][1]) / size > 0.1 * step:
+            ichunks += [(ichunks[-1][1], size)]
+        else:
+            ichunks[-1] = (ichunks[-1][0], size)
+        return ichunks
+    elif nchunks <= 1:
+        return [(0, size)]
+    
 
 def calc_mag(comb, g2m):
     colat, mlt = \
@@ -171,11 +200,40 @@ def calc_mag_ref(comb, g2m):
         g2m(np.pi/2 - rad(comb['rlat']), rad(comb['rlon']), comb['rtime'])  
     return  rcolat, rmlt
 
-def seed_mag_coordinates(comb):
+def calc_mag_coordinates(comb):
     comb['colat_mdip'], comb['mlt_mdip'] = calc_mag(comb, geo2modip)  
     comb['rcolat_mdip'], comb['rmlt_mdip'] = calc_mag_ref(comb, geo2modip)
     comb['colat_mag'], comb['mlt_mag'] = calc_mag(comb, geo2mag)
     comb['rcolat_mag'], comb['rmlt_mag'] = calc_mag_ref(comb, geo2mag)
+    return comb
+    
+def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
+    if len(chunks) < 1:
+        return None
+    if len(chunks) == 1:
+        calc_mag_coordinates(chunks[0])
+        return chunks[0]
+    with ProcessPoolExecutor(max_workers=nworkers) as executor:
+        queue = []
+        for chunk in chunks:
+            query = executor.submit(calc_mag_coordinates, chunk)
+            queue.append(query)
+        for v in concurrent.futures.as_completed(queue):
+            chunk = v.result()
+    count = 0
+    for chunk in chunks:
+        count += chunk['tec'].shape[0]
+    comb = {f: np.zeros((count,)) for f in chunks[0] if not f in ['time', 'rtime']}
+    comb['time'] = np.zeros((count,), dtype=object)
+    comb['rtime'] = np.zeros((count,), dtype=object)
+    start, end = 0, 0 
+    for chunk in chunks:
+        end = end + chunk['tec'].shape[0]
+        for k in chunk:
+            comb[k][start:end] = chunk[k]
+        start = end
+    return comb
+    
 
 def save_data(comb, modip_file, mag_file, day_date):
     for postf, filename in zip(['mdip', 'mag'], [modip_file, mag_file]):
@@ -212,17 +270,18 @@ if __name__ == '__main__':
                         default=Path('/tmp/prepared_mag.npz'),
                         help='Path to file with results, for magnetic lat')
     args = parser.parse_args()
+    process_date = args.date
     if args.data_source == DataSourceType.hdf:
         loader = LoaderHDF(args.data_path)
         data_generator = loader.generate_data(sites=sites)
     if args.data_source == DataSourceType.txt:
         loader = LoaderTxt(args.data_path)
-        process_date = args.date
-        data_generator = loader.generate_data()
+        data_generator = loader.generate_data(sites=sites)
     data = process_data(data_generator)
-    combined_data = combine_data(data)
+    data_chunks = combine_data(data, nchunks=1)
     print('Start magnetic calculations...')
     st = time.time()
-    seed_mag_coordinates(combined_data)
+    #calc_mag_coordinates(combined_data)
+    result = calculate_seed_mag_coordinates_parallel(data_chunks)
     print(f'Done, took {time.time() - st}')
-    save_data(combined_data, args.modip_file, args.mag_file, process_date)
+    save_data(result, args.modip_file, args.mag_file, process_date)
