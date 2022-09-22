@@ -61,6 +61,13 @@ class DataSourceType(Enum):
 
     def __str__(self):
         return self.value
+    
+class MagneticCoordType(Enum):
+    mag = 'mag'
+    mdip = 'mdip'
+
+    def __str__(self):
+        return self.value
 
 def process_data(data_generator):
     all_data = defaultdict(list)
@@ -236,10 +243,17 @@ def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
     
 
 def save_data(comb, modip_file, mag_file, day_date):
-    for postf, filename in zip(['mdip', 'mag'], [modip_file, mag_file]):
+    mags = [MagneticCoordType.mdip, MagneticCoordType.mag]
+    for mtype, filename in zip(mags, [modip_file, mag_file]):
+        data = get_data(comb, mtype, day_date)
+        postf = str(mtype)
         np.savez(filename, 
                 day = day_date,
-                time = sec_of_interval(comb['time'], day_date), 
+                **data)    
+        
+def get_data(comb, mtype, day_date):
+    postf = str(mtype)
+    data = dict(time = sec_of_interval(comb['time'], day_date), 
                 mlt = comb['mlt_' + postf ], 
                 mcolat = comb['colat_' + postf], 
                 el = rad(comb['el']),
@@ -248,6 +262,9 @@ def save_data(comb, modip_file, mag_file, day_date):
                 mcolat_ref = comb['rcolat_' + postf], 
                 el_ref = rad(comb['rel']), 
                 rhs = comb['tec'])    
+    return data
+    
+    
 
 if __name__ == '__main__':
     import argparse

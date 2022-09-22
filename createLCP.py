@@ -109,12 +109,8 @@ class CreateLCP:
 
         return A
 
-
-if __name__ == "__main__":
+def create_lcp(data):
     logger_configuration()
-
-    input_file = 'res_data_rel_modip300_2017_002.npz'
-    output_file = 'res_data_rel_modip300_2017_002_lcp.npz'
 
     nT = 24
 
@@ -133,8 +129,6 @@ if __name__ == "__main__":
         timeindex=time_m
     )
 
-    logger.info(f"Load data {input_file}")
-    data = np.load(input_file, allow_pickle=True)
 
     Ninv = np.linalg.inv(data['N'])
     w = G.dot(data['res'])
@@ -152,7 +146,13 @@ if __name__ == "__main__":
 
     c = data['res'] + NGT.dot(sol[0])
     w = G.dot(c)
+    return c
 
+if __name__ == "__main__":
+    input_file = 'res_data_rel_modip300_2017_002.npz'
+    output_file = 'res_data_rel_modip300_2017_002_lcp.npz'
+    data = np.load(input_file, allow_pickle=True)
+    c = create_lcp(data)
     np.savez(output_file, res=c, N=data['N'])
 
     logger.success(f"{output_file} saved successfully")

@@ -197,6 +197,39 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, mlt_chunks, mcolat
     
     return res1, N
 
+def solve_weights(data, chunk_size=60000):
+    time = data['time']
+    mlt = data['mlt']
+    mcolat = data['mcolat']
+    el = data['el']
+    time_ref = data['time_ref']
+    mlt_ref = data['mlt_ref']
+    mcolat_ref = data['mcolat_ref']
+    el_ref = data['el_ref']
+    rhs = data['rhs']
+
+    nchunks = np.int(len(rhs) / chunk_size) # set chuncks size to fit in memory ~4Gb
+    nchunks = 1 if nchunks < 1 else nchunks
+
+    print('start, nbig=%s, mbig=%s, nT=%s, ndays=%s, sigma0=%s, sigma_v=%s, number of observations=%s, number of chuncks=%s' % (nbig, mbig, nT, ndays, sigma0, sigma_v, len(rhs), nchunks))
+
+    # split data into chunks
+    time_chunks = np.array_split(time, nchunks)
+    mlt_chunks = np.array_split(mlt, nchunks)
+    mcolat_chunks = np.array_split(mcolat, nchunks)
+    el_chunks = np.array_split(el, nchunks)
+    time_ref_chunks = np.array_split(time_ref, nchunks)
+    mlt_ref_chunks = np.array_split(mlt_ref, nchunks)
+    mcolat_ref_chunks = np.array_split(mcolat_ref, nchunks)
+    el_ref_chunks = np.array_split(el_ref, nchunks)
+    rhs_chunks = np.array_split(rhs, nchunks)
+
+    res, N = stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, 
+                                   mlt_chunks, mcolat_chunks, el_chunks, 
+                                   time_ref_chunks, mlt_ref_chunks, 
+                                   mcolat_ref_chunks, el_ref_chunks, rhs_chunks) 
+    return res, N
+
 
 if __name__ == '__main__':
 

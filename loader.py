@@ -48,7 +48,9 @@ class LoaderTxt(Loader):
                              names=self.FIELDS, 
                              dtype=self.DTYPE,
                              converters={"datetime": convert},  
-                             unpack=True)
+                             #unpack=True
+                             )
+
         #tt = sec_of_day(data['datetime'])
         #data = append_fields(data, 'sec_of_day', tt, np.float)
         return data

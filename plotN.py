@@ -226,42 +226,32 @@ def make_matrix(nbig, mbig, theta, phi):
         matrix[i, :] = a[:]
     return matrix
  
+def plot_and_save(res, fname):
 
-nbig = 15  # max order of spherical harmonic expansion
-mbig = 15  # max degree of spherical harmonic expansion (0 <= mbig <= nbig)
-nT = 24  # number of time steps
+    nbig = 15  # max order of spherical harmonic expansion
+    mbig = 15  # max degree of spherical harmonic expansion (0 <= mbig <= nbig)
+    nT = 24  # number of time steps
+    
+    # prepare net to estimate TEC on it
+    colat = np.arange(2.5, 180, 2.5)
+    lon = np.arange(-180, 185, 5.)
+    lon_m, colat_m = np.meshgrid(lon, colat)
+    fig = plt.figure()
+    camera = Camera(fig)
+    levels=np.arange(0,40,0.5)
 
-data = np.load('res_data_rel_modip300_2017_002_lcp.npz', allow_pickle=True)
-res = data['res']
+    for k in np.arange(0,nT,1): # consecutive tec map number
+    #  mcolat, mt = geo2modip(np.deg2rad(colat_m.flatten()), np.deg2rad(lon_m.flatten()), datetime.datetime(2017,1,2, np.int(24 * k / nT),0))
+        mcolat, mt = geo2mag(np.deg2rad(colat_m.flatten()), np.deg2rad(lon_m.flatten()), datetime.datetime(2017,1,2, np.int(24 * k / nT),0))
+        Aest = make_matrix(nbig, mbig, mt, mcolat)
+        Z1 = np.dot(Atest, res[(0+k)*len(Atest[0]):(0+k+1)*len(Atest[0])]).reshape(len(colat), len(lon))
+        plt.contourf(lon_m, 90.-colat_m, Z1, levels, cmap=plt.cm.jet)
+    
+        camera.snap()
 
+    anim = camera.animate()
+    anim.save(fname)
 
-# prepare net to estimate TEC on it
-colat = np.arange(2.5, 180, 2.5)
-lon = np.arange(-180, 185, 5.)
-lon_m, colat_m = np.meshgrid(lon, colat)
-
-
-fig = plt.figure()
-camera = Camera(fig)
-levels=np.arange(0,40,0.5)
-
-
-
-for k in np.arange(0,nT,1): # consecutive tec map number
-
-#  mcolat, mt = geo2modip(np.deg2rad(colat_m.flatten()), np.deg2rad(lon_m.flatten()), datetime.datetime(2017,1,2, np.int(24 * k / nT),0))
-  mcolat, mt = geo2mag(np.deg2rad(colat_m.flatten()), np.deg2rad(lon_m.flatten()), datetime.datetime(2017,1,2, np.int(24 * k / nT),0))
-  
-
-  Atest = make_matrix(nbig, mbig, mt, mcolat)
-  Z1 = np.dot(Atest, res[(0+k)*len(Atest[0]):(0+k+1)*len(Atest[0])]).reshape(len(colat), len(lon))
-
- 
-  plt.contourf(lon_m, 90.-colat_m, Z1, levels, cmap=plt.cm.jet)
-  
-  camera.snap()
-
-
-anim = camera.animate()
-anim.save('animation.mp4')
-
+if __name__ == '__main__':
+    data = np.load('res_data_rel_modip300_2017_002_lcp.npz', allow_pickle=True)
+    plot_and_save(data['res'], 'animation.mp4')
