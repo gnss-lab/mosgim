@@ -96,6 +96,7 @@ class LoaderHDF(Loader):
                 az = sat_data['azimuth'][:]
                 ts = sat_data['timestamp'][:]
                 ipp_lat, ipp_lon = sub_ionospheric(slat, slon, HM, az, el)
+                
                 arr['datetime'] = np.array([datetime.utcfromtimestamp(float(t)) for t in ts])
                 arr['el'] = np.rad2deg(el)
                 arr['ipp_lat'] = np.rad2deg(ipp_lat)

@@ -5,6 +5,7 @@ from scipy.sparse import lil_matrix, csr_matrix
 import itertools
 import datetime
 import gc
+from pathlib import Path
 
 RE = 6371200.
 IPPh = 450000.
@@ -15,10 +16,6 @@ ndays = 1
 sigma0 = 0.075  # TECU - measurement noise at zenith
 sigma_v = 1.  # TECU - allowed variability for each coef between two consecutive maps
  
-
-inputfile = 'input_data_rel_modip300_2017_002.npz'
-outputfile = 'res_data_rel_modip300_2017_002.npz'
-
  
 def MF(el):
     """
@@ -232,41 +229,17 @@ def solve_weights(data, chunk_size=60000):
 
 
 if __name__ == '__main__':
-
-    #n_coefs = (nbig + 1)**2 - (nbig - mbig) * (nbig - mbig + 1)
-
-    # load data
+    import argparse
+    parser = argparse.ArgumentParser(description='Solve raw TECs to ')
+    parser.add_argument('--in_file', 
+                        type=Path, 
+                        help='Path to data, after prepare script')
+    parser.add_argument('--out_file', 
+                        type=Path, 
+                        help='Path to data, after prepare script')
+    args = parser.parse_args()
+    inputfile = args.in_file
+    outputfile = args.out_file
     data = np.load(inputfile, allow_pickle=True)
-
-    time = data['time']
-    mlt = data['mlt']
-    mcolat = data['mcolat']
-    el = data['el']
-    time_ref = data['time_ref']
-    mlt_ref = data['mlt_ref']
-    mcolat_ref = data['mcolat_ref']
-    el_ref = data['el_ref']
-    rhs = data['rhs']
-
-    nchunks = np.int(len(rhs) / 60000) # set chuncks size to fit in memory ~4Gb
-
-    print('start, nbig=%s, mbig=%s, nT=%s, ndays=%s, sigma0=%s, sigma_v=%s, number of observations=%s, number of chuncks=%s' % (nbig, mbig, nT, ndays, sigma0, sigma_v, len(rhs), nchunks))
-
-
-
-    # split data into chunks
-    time_chunks = np.array_split(time, nchunks)
-    mlt_chunks = np.array_split(mlt, nchunks)
-    mcolat_chunks = np.array_split(mcolat, nchunks)
-    el_chunks = np.array_split(el, nchunks)
-    time_ref_chunks = np.array_split(time_ref, nchunks)
-    mlt_ref_chunks = np.array_split(mlt_ref, nchunks)
-    mcolat_ref_chunks = np.array_split(mcolat_ref, nchunks)
-    el_ref_chunks = np.array_split(el_ref, nchunks)
-    rhs_chunks = np.array_split(rhs, nchunks)
-
-    res, N = stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
-                                time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, rhs_chunks) 
-
-
+    res, N = solve_weights(data)
     np.savez(outputfile, res=res, N=N)

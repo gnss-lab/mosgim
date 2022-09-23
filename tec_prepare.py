@@ -123,6 +123,7 @@ def process_intervals(data, maxgap, maxjump, derivative,
                                 maxgap=maxgap, maxjump=maxjump)
     #_, intervals = get_continuos_intervals(data, maxgap=maxgap, maxjump=maxjump)
     for start, fin in intervals:
+
         if (tt[fin] - tt[start]) < short:    # disgard all the arcs shorter than 1 hour
             #print('too short interval')
             continue
@@ -141,9 +142,8 @@ def process_intervals(data, maxgap, maxjump, derivative,
             data0 = data_sample[idx_min]
             data_out = np.delete(data_sample, idx_min)
             dtec = data_out['tec'][:] - data0['tec']
-            data_ref = data_out[:]
+            data_ref = np.zeros_like(data_out)
             data_ref[:] = data0
-
         result['dtec'].append(dtec)
         result['out'].append(data_out)
         result['ref'].append(data_ref)
@@ -171,7 +171,7 @@ def combine_data(all_data, nchunks=1):
         comb['lon'] = _out_data['ipp_lon']
         comb['lat'] = _out_data['ipp_lat']
         comb['el'] = _out_data['el']
-        _ref_data = out_data[start:fin]
+        _ref_data = ref_data[start:fin]
         comb['rtime'] = _ref_data['datetime']
         comb['rlon'] = _ref_data['ipp_lon']
         comb['rlat'] = _ref_data['ipp_lat']
@@ -220,6 +220,7 @@ def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
     if len(chunks) == 1:
         calc_mag_coordinates(chunks[0])
         return chunks[0]
+    chunks_processed = []
     with ProcessPoolExecutor(max_workers=nworkers) as executor:
         queue = []
         for chunk in chunks:
@@ -227,15 +228,20 @@ def calculate_seed_mag_coordinates_parallel(chunks, nworkers=3):
             queue.append(query)
         for v in concurrent.futures.as_completed(queue):
             chunk = v.result()
+            chunks_processed.append(chunk)
     count = 0
-    for chunk in chunks:
+    for chunk in chunks_processed:
         count += chunk['tec'].shape[0]
-    comb = {f: np.zeros((count,)) for f in chunks[0] if not f in ['time', 'rtime']}
+    comb = {}
+    for f in chunks_processed[0]:
+        if not f in ['time', 'rtime']:
+            comb[f] = np.zeros((count,)) 
     comb['time'] = np.zeros((count,), dtype=object)
     comb['rtime'] = np.zeros((count,), dtype=object)
     start, end = 0, 0 
-    for chunk in chunks:
+    for chunk in chunks_processed:
         end = end + chunk['tec'].shape[0]
+        
         for k in chunk:
             comb[k][start:end] = chunk[k]
         start = end
@@ -286,8 +292,13 @@ if __name__ == '__main__':
                         type=Path,
                         default=Path('/tmp/prepared_mag.npz'),
                         help='Path to file with results, for magnetic lat')
+    parser.add_argument('--nsite',  
+                        type=int,
+                        help='Number of sites to take into calculations')
     args = parser.parse_args()
     process_date = args.date
+    if args.nsites:
+        sites = sites[:args.nsites]
     if args.data_source == DataSourceType.hdf:
         loader = LoaderHDF(args.data_path)
         data_generator = loader.generate_data(sites=sites)
