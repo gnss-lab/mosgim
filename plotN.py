@@ -248,7 +248,7 @@ def plot_and_save(res, animation_file, maps_file):
         Atest = make_matrix(nbig, mbig, mt, mcolat)
         Z1 = np.dot(Atest, res[(0+k)*len(Atest[0]):(0+k+1)*len(Atest[0])]).reshape(len(colat), len(lon))
         plt.contourf(lon_m, 90.-colat_m, Z1, levels, cmap=plt.cm.jet)
-        maps['time' + k] = Z1
+        maps['time' + str(k)] = Z1
         camera.snap()
 
     anim = camera.animate()

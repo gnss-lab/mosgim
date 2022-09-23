@@ -1,11 +1,14 @@
 import numpy as np
 import scipy.special as sp
-from scipy.linalg import solve
-from scipy.sparse import lil_matrix, csr_matrix
+import concurrent.futures
 import itertools
 import datetime
 import gc
+
+from scipy.linalg import solve
+from scipy.sparse import lil_matrix, csr_matrix
 from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
 
 RE = 6371200.
 IPPh = 450000.
@@ -16,7 +19,8 @@ ndays = 1
 sigma0 = 0.075  # TECU - measurement noise at zenith
 sigma_v = 1.  # TECU - allowed variability for each coef between two consecutive maps
  
- 
+GB_CHUNK = 15000 
+
 def MF(el):
     """
     :param el: elevation angle in rads
@@ -45,7 +49,9 @@ vcoefs = np.vectorize(calc_coefs, excluded=['M','N'], otypes=[np.ndarray])
  
 
 
-def construct_normal_system(nbig, mbig, nT, ndays, time, theta, phi, el, time_ref, theta_ref, phi_ref, el_ref, rhs):
+def construct_normal_system(nbig, mbig, nT, ndays, 
+                            time, theta, phi, el, 
+                            time_ref, theta_ref, phi_ref, el_ref, rhs):
     """
     :param nbig: maximum order of spherical harmonic
     :param mbig: maximum degree of spherical harmonic
@@ -161,20 +167,29 @@ def construct_normal_system(nbig, mbig, nT, ndays, time, theta, phi, el, time_re
     return N, b
 
 
-def stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
-                          time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, rhs_chunks):
+def stack_weight_solve_ns(nbig, mbig, nT, ndays, 
+                          time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
+                          time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, 
+                          rhs_chunks,
+                          nworkers=3):
 
     n_coefs = (nbig + 1)**2 - (nbig - mbig) * (nbig - mbig + 1)
     N = np.zeros((n_coefs * (nT + 1), n_coefs * (nT + 1)))
     b = np.zeros(n_coefs * (nT + 1))
-
-    for c_time, c_mlt, c_mcolat, c_el, c_time_ref, c_mlt_ref, c_mcolat_ref, c_el_ref, c_rhs  in zip(time_chunks, mlt_chunks, mcolat_chunks, el_chunks, time_ref_chunks, 
-                                                                                                               mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, rhs_chunks):
     
-        NN, bb = construct_normal_system(nbig, mbig, nT, ndays, c_time, c_mlt, c_mcolat, c_el, c_time_ref, c_mlt_ref, c_mcolat_ref, c_el_ref, c_rhs) 
-
-        N += NN
-        b += bb
+    chunks_processed = []
+    with ProcessPoolExecutor(max_workers=nworkers) as executor:
+        queue = []
+        for chunk  in zip(time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
+                          time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks,
+                          el_ref_chunks, rhs_chunks):
+            params = (nbig, mbig, nT, ndays) + chunk
+            query = executor.submit(construct_normal_system, *params)
+            queue.append(query)
+        for v in concurrent.futures.as_completed(queue):
+            NN, bb = v.result()
+            N += NN
+            b += bb
 
     print('normal matrix (N) stacked')
 
@@ -194,7 +209,8 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, mlt_chunks, mcolat
     
     return res1, N
 
-def solve_weights(data, chunk_size=60000):
+def solve_weights(data, gigs=2, nworkers=3):
+    chunk_size = GB_CHUNK * gigs
     time = data['time']
     mlt = data['mlt']
     mcolat = data['mcolat']
@@ -224,7 +240,8 @@ def solve_weights(data, chunk_size=60000):
     res, N = stack_weight_solve_ns(nbig, mbig, nT, ndays, time_chunks, 
                                    mlt_chunks, mcolat_chunks, el_chunks, 
                                    time_ref_chunks, mlt_ref_chunks, 
-                                   mcolat_ref_chunks, el_ref_chunks, rhs_chunks) 
+                                   mcolat_ref_chunks, el_ref_chunks, rhs_chunks,
+                                   nworkers=nworkers) 
     return res, N
 
 

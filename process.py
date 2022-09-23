@@ -50,7 +50,11 @@ if __name__ == '__main__':
     parser.add_argument('--nworkers',  
                         type=int,
                         default=1,
-                        help='Number of threads for parallel procesing')
+                        help='Numbernworkers of threads for parallel procesing')
+    parser.add_argument('--memory_per_worker',  
+                        type=int,
+                        default=2,
+                        help='Number of Gb per worker')
     parser.add_argument('--skip_prepare',
                         help='Skip data reading use existing files')
     parser.add_argument('--animation_file',  
@@ -89,7 +93,9 @@ if __name__ == '__main__':
             data = np.load(args.mag_file, allow_pickle=True)
         elif args.mag_type == MagneticCoordType.mdip:
             data = np.load(args.modip_file, allow_pickle=True)
-    weights, N = solve_weights(data)
+    weights, N = solve_weights(data, 
+                               nworkers=args.nworkers, 
+                               gigs=args.memory_per_worker)
     if args.weight_file:
         np.savez(args.weight_file, res=weights, N=N)
     lcp = create_lcp({'res': weights, 'N': N})
