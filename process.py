@@ -40,7 +40,11 @@ if __name__ == '__main__':
     parser.add_argument('--weight_file',  
                         type=Path,
                         default=Path('/tmp/weights.npz'),
-                        help='Path to file with results, for magnetic lat')
+                        help='Path to file with solved weights')
+    parser.add_argument('--lcp_file',  
+                        type=Path,
+                        default=Path('/tmp/lcp.npz'),
+                        help='LCP file')
     parser.add_argument('--mag_type',  
                         type=MagneticCoordType,
                         help='Type of magnetic coords [mag | mdip]')
@@ -99,5 +103,7 @@ if __name__ == '__main__':
     if args.weight_file:
         np.savez(args.weight_file, res=weights, N=N)
     lcp = create_lcp({'res': weights, 'N': N})
+    if args.lcp_file:
+        np.savez(args.lcp_file, res=lcp, N=data['N'])
     plot_and_save(lcp, args.animation_file, args.maps_file)
     
