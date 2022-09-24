@@ -2,10 +2,12 @@ import os
 import time
 import numpy as np
 import h5py
+import concurrent.futures
 from datetime import datetime
 from warnings import warn
 from collections import defaultdict
 from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
 
 
 from geo import HM
@@ -53,7 +55,10 @@ class LoaderTxt(Loader):
 
         #tt = sec_of_day(data['datetime'])
         #data = append_fields(data, 'sec_of_day', tt, np.float)
-        return data
+        return data, filepath
+    
+    def __load_data_pool(self, filepath):
+        return self.load_data(filepath), filepath
 
     def generate_data(self, sites=[]):
         files = self.get_files(self.root_dir)
@@ -65,12 +70,33 @@ class LoaderTxt(Loader):
             st = time.time()
             for sat_file in site_files:
                 try:
-                    data = self.load_data(sat_file)
+                    data, _ = self.load_data(sat_file)
                     count += 1
                     yield data, sat_file
                 except Exception as e:
                     print(f'{sat_file} not processed. Reason: {e}')
             print(f'{site} contribute {count} files, takes {time.time() - st}')
+            
+    def generate_data_pool(self, sites=[], nworkers=1):
+        files = self.get_files(self.root_dir)
+        print(f'Collected {len(files)} sites')
+        with ProcessPoolExecutor(max_workers=nworkers) as executor:
+            queue = []
+            for site, site_files in files.items():
+                if sites and not site in sites:
+                    continue
+                count = 0
+                st = time.time()
+                for sat_file in site_files:
+                    try:
+                        query = executor.submit(self.load_data, sat_file)
+                        queue.append(query)
+                        print(f'Added {sat_file} in queue')
+                    except Exception as e:
+                        print(f'{sat_file} not processed. Reason: {e}')
+            for v in concurrent.futures.as_completed(queue):
+                print
+                yield v.result()
 
 
 class LoaderHDF(Loader):

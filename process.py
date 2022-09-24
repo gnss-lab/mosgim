@@ -1,8 +1,10 @@
 import argparse
 import time
 import numpy as np
+
 from pathlib import Path
 from datetime import datetime
+
 from tec_prepare import (DataSourceType,
                          MagneticCoordType,
                          process_data,
@@ -16,6 +18,7 @@ from loader import (LoaderHDF,
 from mosgim_linear import solve_weights
 from createLCP import create_lcp
 from plotN import plot_and_save
+
 
 if __name__ == '__main__':
     
@@ -71,6 +74,7 @@ if __name__ == '__main__':
                         help='Path to map data')
     args = parser.parse_args()
     process_date = args.date
+    st = time.time()
     if not args.skip_prepare:
         if args.nsite:
             sites = sites[:args.nsite]
@@ -79,8 +83,11 @@ if __name__ == '__main__':
             data_generator = loader.generate_data(sites=sites)
         if args.data_source == DataSourceType.txt:
             loader = LoaderTxt(args.data_path)
-            data_generator = loader.generate_data(sites=sites)
+            #data_generator = loader.generate_data(sites=sites)
+            data_generator = loader.generate_data_pool(sites=sites, 
+                                                       nworkers=args.nworkers)
         data = process_data(data_generator)
+        print(f'Done reading in {time.time() - st}')
         data_chunks = combine_data(data, nchunks=args.nworkers)
         print('Start magnetic calculations...')
         st = time.time()
@@ -104,6 +111,6 @@ if __name__ == '__main__':
         np.savez(args.weight_file, res=weights, N=N)
     lcp = create_lcp({'res': weights, 'N': N})
     if args.lcp_file:
-        np.savez(args.lcp_file, res=lcp, N=data['N'])
+        np.savez(args.lcp_file, res=lcp, N=N)
     plot_and_save(lcp, args.animation_file, args.maps_file)
     
