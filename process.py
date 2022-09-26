@@ -81,12 +81,14 @@ if __name__ == '__main__':
         if args.data_source == DataSourceType.hdf:
             loader = LoaderHDF(args.data_path)
             data_generator = loader.generate_data(sites=sites)
+
         if args.data_source == DataSourceType.txt:
             loader = LoaderTxt(args.data_path)
             #data_generator = loader.generate_data(sites=sites)
             data_generator = loader.generate_data_pool(sites=sites, 
                                                        nworkers=args.nworkers)
         data = process_data(data_generator)
+        print(loader.not_found_sites)
         print(f'Done reading in {time.time() - st}')
         data_chunks = combine_data(data, nchunks=args.nworkers)
         print('Start magnetic calculations...')

@@ -19,6 +19,7 @@ class Loader():
     def __init__(self):
         self.FIELDS = ['datetime', 'el', 'ipp_lat', 'ipp_lon', 'tec']
         self.DTYPE = (object, float, float, float, float)
+        self.not_found_sites = []
 
 class LoaderTxt(Loader):
     
@@ -63,9 +64,11 @@ class LoaderTxt(Loader):
     def generate_data(self, sites=[]):
         files = self.get_files(self.root_dir)
         print(f'Collected {len(files)} sites')
+        self.not_found_sites = sites[:]
         for site, site_files in files.items():
             if sites and not site in sites:
                 continue
+            self.not_found_sites.remove(site)
             count = 0
             st = time.time()
             for sat_file in site_files:
@@ -80,11 +83,13 @@ class LoaderTxt(Loader):
     def generate_data_pool(self, sites=[], nworkers=1):
         files = self.get_files(self.root_dir)
         print(f'Collected {len(files)} sites')
+        self.not_found_sites = sites[:]
         with ProcessPoolExecutor(max_workers=nworkers) as executor:
             queue = []
             for site, site_files in files.items():
                 if sites and not site in sites:
                     continue
+                self.not_found_sites.remove(site)
                 count = 0
                 st = time.time()
                 for sat_file in site_files:
@@ -107,9 +112,11 @@ class LoaderHDF(Loader):
         self.hdf_file = h5py.File(hdf_path, 'r')
     
     def generate_data(self, sites=[]):
+        self.not_found_sites = sites[:]
         for site in self.hdf_file:
             if sites and not site in sites:
                 continue
+            self.not_found_sites.remove(site)
             slat = self.hdf_file[site].attrs['lat']
             slon = self.hdf_file[site].attrs['lon']
             st = time.time()
