@@ -8,7 +8,7 @@ from warnings import warn
 from collections import defaultdict
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
-
+from numpy import cos, sin, sqrt, arctan, arctan2, rad2deg
 
 from geo import HM
 from geo import sub_ionospheric
@@ -29,6 +29,10 @@ class LoaderTxt(Loader):
         self.root_dir = root_dir
 
     def get_files(self, rootdir):
+        """
+        Root directroy must contain folders with site name 
+        Inside subfolders are *.dat files for every satellite
+        """
         result = defaultdict(list)
         for subdir, _, files in os.walk(rootdir):
             for filename in files:
@@ -100,7 +104,6 @@ class LoaderTxt(Loader):
                     except Exception as e:
                         print(f'{sat_file} not processed. Reason: {e}')
             for v in concurrent.futures.as_completed(queue):
-                print
                 yield v.result()
 
 
@@ -139,5 +142,34 @@ class LoaderHDF(Loader):
                 yield arr, sat + '_' + site
             print(f'{site} contribute {count} files, takes {time.time() - st}')
 
-                
-                
+
+class LoaderRinex(Loader):
+    
+    def __init__(self, rinex_path, nav_path):
+        super().__init__()
+        self.rinex_path = rinex_path
+        self.nav_path = nav_path
+        self.o_regx = re.compile((r'.[1-9][1-9]o'))
+
+    def __is_ofile(self, f):
+        is_ofile = False
+        is_ofile = is_ofile or bool(self.o_regx.match(f[-4:])) 
+        is_ofile = is_ofile or f.endswith('.rnx')
+        is_ofile = is_ofile or f.endswith('.RNX')
+        return is_ofile
+        
+    def get_files(self):
+        result = dict()
+        for subdir, _, files in os.walk(rootdir):
+            for filename in files:
+                filepath = Path(subdir) / filename
+                if not self.__is_ofile(filename):
+                    warn(f'{filepath} is not observation file')
+                    continue
+                site = filename[:4]
+                if site in result:
+                    msg = f'Duplicated file {filename}, was {result[site]}'
+                    raise ValueError(msg)
+                result[site] = filepath
+        return result
+    
