@@ -51,7 +51,8 @@ vcoefs = np.vectorize(calc_coefs, excluded=['M','N'], otypes=[np.ndarray])
 
 def construct_normal_system(nbig, mbig, nT, ndays, 
                             time, theta, phi, el, 
-                            time_ref, theta_ref, phi_ref, el_ref, rhs):
+                            time_ref, theta_ref, phi_ref, el_ref, rhs,
+                            linear):
     """
     :param nbig: maximum order of spherical harmonic
     :param mbig: maximum degree of spherical harmonic
@@ -66,16 +67,20 @@ def construct_normal_system(nbig, mbig, nT, ndays,
     :param phi_ref: array of ref co latitudes of IPPs in rads
     :param el_ref: array of ref elevation angles in rads
     :param rhs: array of rhs (measurements TEC difference on current and ref rays)
+    :param linear: bool defines const or linear
     """
     print('constructing normal system for series')
-    
+    tmc = time
+    tmr = time_ref
     SF = MF(el)
     SF_ref = MF(el_ref)
  
     # Construct weight matrix for the observations
     len_rhs = len(rhs)
     P = lil_matrix((len_rhs, len_rhs))
-    diagP = (np.sin(np.deg2rad(el))**2) * (np.sin(np.deg2rad(el_ref))**2) / (np.sin(np.deg2rad(el))**2 + np.sin(np.deg2rad(el_ref))**2)
+    el_sin = np.sin(np.deg2rad(el))
+    elr_sin = np.sin(np.deg2rad(el_ref))
+    diagP = (el_sin ** 2) * (elr_sin ** 2) / (el_sin ** 2 + elr_sin **2)
     P.setdiag(diagP)
     P = P.tocsr()
  
@@ -89,80 +94,67 @@ def construct_normal_system(nbig, mbig, nT, ndays,
     N = N[idx]
     n_coefs = len(M)
  
-    timeindex = (time * nT / (ndays * 86400.)).astype('int16')
-    time_i = (ndays * 86400.) * timeindex / nT    
-    time_i1 = (ndays * 86400.) * (timeindex + 1) / nT    
+    tic = (tmc * nT / (ndays * 86400.)).astype('int16')
+    tir = (tmr * nT / (ndays * 86400.)).astype('int16')
 
-    timeindex_ref = (time_ref * nT / (ndays * 86400.)).astype('int16')
-    time_ref_i = (ndays * 86400.) * timeindex_ref / nT    
-    time_ref_i1 = (ndays * 86400.) * (timeindex_ref + 1) / nT    
-
-    dt = (ndays * 86400.) / nT 
-
-    a = vcoefs(M=M, N=N, theta=theta, phi=phi, sf=SF)
-    a_ref = vcoefs(M=M, N=N, theta=theta_ref, phi=phi_ref, sf=SF_ref)
+    ac = vcoefs(M=M, N=N, theta=theta, phi=phi, sf=SF)
+    ar = vcoefs(M=M, N=N, theta=theta_ref, phi=phi_ref, sf=SF_ref)
     print('coefs done', n_coefs, nT, ndays, len_rhs)
 
-
-    del theta
-    del phi
-    del el
-    del theta_ref
-    del phi_ref
-    del el_ref
-    del SF
-    del SF_ref
-    del M
-    del N
-    del Y
-    del diagP
-    gc.collect()
-
     #prepare (A) in csr sparse format
-    data = np.empty(len_rhs * n_coefs * 4)
-    rowi = np.empty(len_rhs * n_coefs * 4)
-    coli = np.empty(len_rhs * n_coefs * 4)
-
-    for i in range(0, len_rhs,1): 
-        data[i * n_coefs * 4: i * n_coefs * 4 + n_coefs] = (time[i] - time_i[i]) * a[i] / dt
-        data[i * n_coefs * 4 + n_coefs: i * n_coefs * 4 + 2 * n_coefs] = (time_i1[i] - time[i]) * a[i] / dt
-        data[i * n_coefs * 4 + 2 * n_coefs: i * n_coefs * 4 + 3 * n_coefs] = - (time_ref[i] - time_ref_i[i]) * a_ref[i] / dt
-        data[i * n_coefs * 4 + 3 * n_coefs: i * n_coefs * 4 + 4 * n_coefs] = - (time_ref_i1[i] - time_ref[i]) * a_ref[i] / dt
-
-        rowi[i * n_coefs * 4: (i+1) * n_coefs * 4] = i * np.ones(n_coefs * 4).astype('int32')
-        
-        coli[i * n_coefs * 4: i * n_coefs * 4 + n_coefs] = np.arange(timeindex[i] * n_coefs, (timeindex[i] + 1) * n_coefs, 1).astype('int32')
-        coli[i * n_coefs * 4 + n_coefs: i * n_coefs * 4 + 2 * n_coefs] = np.arange((timeindex[i] + 1) * n_coefs, (timeindex[i] + 1 + 1) * n_coefs, 1).astype('int32')
-
-        coli[i * n_coefs * 4 + 2 * n_coefs: i * n_coefs * 4 + 3 * n_coefs] = np.arange(timeindex_ref[i] * n_coefs,(timeindex_ref[i] + 1) * n_coefs, 1).astype('int32')
-        coli[i * n_coefs * 4 + 3 * n_coefs: i * n_coefs * 4 + 4 * n_coefs] = np.arange((timeindex_ref[i] + 1) * n_coefs,(timeindex_ref[i] + 1 + 1) * n_coefs, 1).astype('int32')
-
+    dims = 4 if linear else 2
+    nT_add = 1 if linear else 0
+    data = np.empty(len_rhs * n_coefs * dims)
+    rowi = np.empty(len_rhs * n_coefs * dims)
+    coli = np.empty(len_rhs * n_coefs * dims)
     
-    A = csr_matrix((data, (rowi, coli)), shape=(len_rhs, (nT + 1) * n_coefs))
+    if linear:
+        hour_cc = (ndays * 86400.) * tic / nT    
+        hour_cn = (ndays * 86400.) * (tic + 1) / nT    
+        hour_rc = (ndays * 86400.) * tir / nT    
+        hour_rn = (ndays * 86400.) * (tir + 1) / nT  
+        dt = (ndays * 86400.) / nT 
+        for i in range(0, len_rhs, 1): 
+            st  = [i * n_coefs * 4 + j * n_coefs for j in range(0, 4)]
+            end = [i * n_coefs * 4 + j * n_coefs for j in range(1, 5)]
+            data[st[0]: end[0]] =   (  tmc[i] - hour_cc[i]) * ac[i] / dt
+            data[st[1]: end[1]] =   ( -tmc[i] + hour_cn[i]) * ac[i] / dt
+            data[st[2]: end[2]] = - (  tmr[i] - hour_rc[i]) * ar[i] / dt
+            data[st[3]: end[3]] = - ( -tmr[i] + hour_rn[i]) * ar[i] / dt
+
+            rowi[st[0]: end[-1]] = i * np.ones(n_coefs * 4).astype('int32')
+            
+            coli[st[0]: end[0]] = \
+                np.arange((tic[i] + 0) * n_coefs, (tic[i] + 1) * n_coefs, 1).astype('int32')
+            coli[st[1]: end[1]] = \
+                np.arange((tic[i] + 1) * n_coefs, (tic[i] + 2) * n_coefs, 1).astype('int32')
+            coli[st[2]: end[2]] = \
+                np.arange((tir[i] + 0) * n_coefs, (tir[i] + 1) * n_coefs, 1).astype('int32')
+            coli[st[3]: end[3]] = \
+                np.arange((tir[i] + 1) * n_coefs, (tir[i] + 2) * n_coefs, 1).astype('int32')
+    else:
+        for i in range(0, len_rhs, 1): 
+            st  = [i * n_coefs * 2 + j * n_coefs for j in range(0, 2)]
+            end = [i * n_coefs * 2 + j * n_coefs for j in range(1, 3)]
+            data[st[0]: end[0]] =  ac[i]
+            data[st[1]: end[1]] = -ar[i]
+            
+            rowi[st[0]: end[-1]] = i * np.ones(n_coefs * 2).astype('int32')
+            
+            coli[st[0]: end[0]] = \
+                np.arange(tic[i] * n_coefs, (tic[i] + 1) * n_coefs, 1).astype('int32')
+            coli[st[1]: end[1]] = \
+                np.arange(tir[i] * n_coefs, (tir[i] + 1) * n_coefs, 1).astype('int32')
+
+    A = csr_matrix((data, (rowi, coli)), 
+                   shape=(len_rhs, (nT + nT_add) * n_coefs))
     print('matrix (A) for subset done')
  
-    del a
-    del a_ref    
-    del data
-    del rowi
-    del coli
-    del time
-    del time_ref
-
-    gc.collect()
-    
     # define normal system
     AP = A.transpose().dot(P)
     N = AP.dot(A).todense()    
     b = AP.dot(rhs)
-
     print('normal matrix (N) done')
-
-
-    del A
-    del AP
-    del rhs  
-    gc.collect()
 
     return N, b
 
@@ -171,11 +163,13 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays,
                           time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
                           time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks, el_ref_chunks, 
                           rhs_chunks,
-                          nworkers=3):
+                          nworkers=3, 
+                          linear=True):
 
+    nT_add = 1 if linear else 0
     n_coefs = (nbig + 1)**2 - (nbig - mbig) * (nbig - mbig + 1)
-    N = np.zeros((n_coefs * (nT + 1), n_coefs * (nT + 1)))
-    b = np.zeros(n_coefs * (nT + 1))
+    N = np.zeros((n_coefs * (nT + nT_add), n_coefs * (nT + nT_add)))
+    b = np.zeros(n_coefs * (nT + nT_add))
     
     chunks_processed = []
     with ProcessPoolExecutor(max_workers=nworkers) as executor:
@@ -183,7 +177,7 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays,
         for chunk  in zip(time_chunks, mlt_chunks, mcolat_chunks, el_chunks, 
                           time_ref_chunks, mlt_ref_chunks, mcolat_ref_chunks,
                           el_ref_chunks, rhs_chunks):
-            params = (nbig, mbig, nT, ndays) + chunk
+            params = (nbig, mbig, nT, ndays) + chunk + (linear, )
             query = executor.submit(construct_normal_system, *params)
             queue.append(query)
         for v in concurrent.futures.as_completed(queue):
@@ -195,7 +189,7 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays,
 
 
     # imposing frozen conditions on consequitive maps coeffs
-    for ii in range(0, nT, 1):
+    for ii in range(0, nT - 1 + nT_add, 1):
         for kk in range(0, n_coefs):
             N[ii*n_coefs + kk, ii*n_coefs + kk] += (sigma0 / sigma_v)**2
             N[(ii + 1) * n_coefs + kk, (ii+1) * n_coefs + kk] += (sigma0 / sigma_v)**2
