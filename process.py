@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from tec_prepare import (DataSourceType,
                          MagneticCoordType,
@@ -19,9 +19,7 @@ from mosgim_linear import solve_weights
 from createLCP import create_lcp
 from plotN import plot_and_save
 
-
-if __name__ == '__main__':
-    
+def __parser_args(command=''):
     parser = argparse.ArgumentParser(description='Prepare data from txt, hdf, or RInEx')
     parser.add_argument('--data_path', 
                         type=Path, 
@@ -34,19 +32,19 @@ if __name__ == '__main__':
                         help='Date of data, example 2017-01-02')
     parser.add_argument('--modip_file',  
                         type=Path,
-                        default=Path('/tmp/prepared_modip.npz'),
+                        #default=Path('/tmp/prepared_modip.npz'),
                         help='Path to file with results, for modip')
     parser.add_argument('--mag_file',  
                         type=Path,
-                        default=Path('/tmp/prepared_mag.npz'),
+                        #default=Path('/tmp/prepared_mag.npz'),
                         help='Path to file with results, for magnetic lat')
     parser.add_argument('--weight_file',  
                         type=Path,
-                        default=Path('/tmp/weights.npz'),
+                        #default=Path('/tmp/weights.npz'),
                         help='Path to file with solved weights')
     parser.add_argument('--lcp_file',  
                         type=Path,
-                        default=Path('/tmp/lcp.npz'),
+                        #default=Path('/tmp/lcp.npz'),
                         help='LCP file')
     parser.add_argument('--mag_type',  
                         type=MagneticCoordType,
@@ -66,26 +64,48 @@ if __name__ == '__main__':
                         help='Skip data reading use existing files')
     parser.add_argument('--animation_file',  
                         type=Path,
-                        default=Path('/tmp/animation.mp4'),
+                        #default=Path('/tmp/animation.mp4'),
                         help='Path to animation')
     parser.add_argument('--maps_file',  
                         type=Path,
-                        default=Path('/tmp/maps.npz'),
+                        #default=Path('/tmp/maps.npz'),
                         help='Path to map data')
-    args = parser.parse_args()
+    if command:
+        args = parser.parse_args(command.split())
+    else:
+        args = parser.parse_args()
+    process_date = args.date
+    if not args.modip_file:
+        args.modip_file = f'/tmp/prepared_modip_{process_date}.npz'
+    if not args.mag_file:
+        args.mag_file = f'/tmp/prepared_mag_{process_date}.npz'
+    if not args.weight_file:
+        args.weight_file = f'/tmp/weights_{process_date}.npz'
+    if not args.lcp_file:
+        args.lcp_file = f'/tmp/lcp_{process_date}.npz'
+    if not args.maps_file:
+        args.maps_file = f'/tmp/maps_{process_date}.npz'
+    if not args.animation_file:
+        args.animation_file = f'/tmp/animation_{process_date}.mp4'
+    return args
+
+def __process(args):
+    print(args)
     process_date = args.date
     st = time.time()
     if not args.skip_prepare:
         if args.nsite:
-            sites = sites[:args.nsite]
+            _sites = sites[:args.nsite]
+        else:
+            _sites = sites[:]
         if args.data_source == DataSourceType.hdf:
             loader = LoaderHDF(args.data_path)
-            data_generator = loader.generate_data(sites=sites)
+            data_generator = loader.generate_data(sites=_sites)
 
         if args.data_source == DataSourceType.txt:
             loader = LoaderTxt(args.data_path)
-            #data_generator = loader.generate_data(sites=sites)
-            data_generator = loader.generate_data_pool(sites=sites, 
+            #data_generator = loader.generate_data(sites=_sites)
+            data_generator = loader.generate_data_pool(sites=_sites, 
                                                        nworkers=args.nworkers)
         data = process_data(data_generator)
         print(loader.not_found_sites)
@@ -115,4 +135,21 @@ if __name__ == '__main__':
     if args.lcp_file:
         np.savez(args.lcp_file, res=lcp, N=N)
     plot_and_save(lcp, args.animation_file, args.maps_file)
+    
+def __process_range(basetime, ndays):
+    for iday in range(1, ndays):
+        d = basetime + timedelta(iday-1)
+        doy = str(d.timetuple().tm_yday).zfill(3)
+        str_date =  datetime.strftime(d, '%Y-%m-%d')
+        cmd = f"--data_path /media/user/ssd/mosgim/dat/{d.year}/{doy} " 
+        cmd += f"--data_source txt --date {str_date} --mag_type mag "
+        cmd += f"--memory_per_worker 4 --nworkers 1"
+        args = __parser_args(command=cmd)
+        __process(args)
+        
+
+if __name__ == '__main__':
+    #args = __parser_args()
+    #__process(args)
+    __process_range(datetime(2017, 1, 1), 32)
     
