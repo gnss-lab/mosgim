@@ -143,7 +143,8 @@ def create_lcp(data):
     M = Gnew.dot(NGT)
 
     sol = lcp.lemkelcp(M, wnew, 10000)
-
+    if sol[0] is None:
+        print(sol)
     c = data['res'] + NGT.dot(sol[0])
     w = G.dot(c)
     return c

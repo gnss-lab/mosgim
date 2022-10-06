@@ -100,7 +100,6 @@ class LoaderTxt(Loader):
                     try:
                         query = executor.submit(self.load_data, sat_file)
                         queue.append(query)
-                        print(f'Added {sat_file} in queue')
                     except Exception as e:
                         print(f'{sat_file} not processed. Reason: {e}')
             for v in concurrent.futures.as_completed(queue):

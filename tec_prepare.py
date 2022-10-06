@@ -68,6 +68,13 @@ class MagneticCoordType(Enum):
 
     def __str__(self):
         return self.value
+    
+class ProcessingType(Enum):
+    single = 'single'
+    ranged = 'ranged'
+
+    def __str__(self):
+        return self.value
 
 def process_data(data_generator):
     all_data = defaultdict(list)
