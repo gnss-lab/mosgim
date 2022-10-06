@@ -17,7 +17,7 @@ mbig = 15  # max degree of spherical harmonic expansion (0 <= mbig <= nbig)
 nT = 24  # number of time steps
 ndays = 1
 sigma0 = 0.075  # TECU - measurement noise at zenith
-sigma_v = 1.  # TECU - allowed variability for each coef between two consecutive maps
+sigma_v = 0.015  # TECU - allowed variability for each coef between two consecutive maps
  
 GB_CHUNK = 15000 
 
@@ -78,8 +78,8 @@ def construct_normal_system(nbig, mbig, nT, ndays,
     # Construct weight matrix for the observations
     len_rhs = len(rhs)
     P = lil_matrix((len_rhs, len_rhs))
-    el_sin = np.sin(np.deg2rad(el))
-    elr_sin = np.sin(np.deg2rad(el_ref))
+    el_sin = np.sin(el)
+    elr_sin = np.sin(el_ref)
     diagP = (el_sin ** 2) * (elr_sin ** 2) / (el_sin ** 2 + elr_sin **2)
     P.setdiag(diagP)
     P = P.tocsr()
@@ -154,7 +154,7 @@ def construct_normal_system(nbig, mbig, nT, ndays,
     AP = A.transpose().dot(P)
     N = AP.dot(A).todense()    
     b = AP.dot(rhs)
-    print('normal matrix (N) done')
+    print('normal matrix (N) for subset done')
 
     return N, b
 
@@ -203,7 +203,7 @@ def stack_weight_solve_ns(nbig, mbig, nT, ndays,
     
     return res1, N
 
-def solve_weights(data, gigs=2, nworkers=3):
+def solve_weights(data, gigs=2, nworkers=3, linear=True):
     chunk_size = GB_CHUNK * gigs
     time = data['time']
     mlt = data['mlt']
@@ -235,7 +235,8 @@ def solve_weights(data, gigs=2, nworkers=3):
                                    mlt_chunks, mcolat_chunks, el_chunks, 
                                    time_ref_chunks, mlt_ref_chunks, 
                                    mcolat_ref_chunks, el_ref_chunks, rhs_chunks,
-                                   nworkers=nworkers) 
+                                   nworkers=nworkers,
+                                   linear=linear) 
     return res, N
 
 
