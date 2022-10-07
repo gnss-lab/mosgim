@@ -18,7 +18,8 @@ from loader import (LoaderHDF,
                     LoaderTxt)
 from mosgim import solve_weights
 from createLCP import create_lcp
-from plotN import plot_and_save
+from plotN import (plot_and_save, 
+                   calculate_maps)
 
 def __populate_out_path(args):
     date = args.date
@@ -175,7 +176,8 @@ def __process(args):
         return
     if args.lcp_file:
         np.savez(args.lcp_file, res=lcp, N=N)
-    plot_and_save(lcp, args.animation_file, args.maps_file)
+    maps = calculate_maps(lcp, args.mag_type, process_date)
+    plot_and_save(maps, args.animation_file, args.maps_file)
 
 
 if __name__ == '__main__':
