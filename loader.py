@@ -111,20 +111,35 @@ class LoaderHDF(Loader):
     def __init__(self, hdf_path):
         super().__init__()
         self.hdf_path = hdf_path
-        self.hdf_file = h5py.File(hdf_path, 'r')
+        
+    def get_files(self):
+        result = []
+        for subdir, _, files in os.walk(self.hdf_path):
+            for filename in files:
+                filepath = Path(subdir) / filename
+                if str(filepath).endswith(".h5"):
+                    result.append(filepath)
+        if len(result) != 1:
+            msg = f'Must be exactly one hdf in {self.hdf_path} or subfolders'
+            raise ValueError(msg)
+        return result
+    
+    def __get_hdf_file(self):
+        return self.get_files()[0]
     
     def generate_data(self, sites=[]):
+        hdf_file = h5py.File(self.__get_hdf_file(), 'r')
         self.not_found_sites = sites[:]
-        for site in self.hdf_file:
+        for site in hdf_file:
             if sites and not site in sites:
                 continue
             self.not_found_sites.remove(site)
-            slat = self.hdf_file[site].attrs['lat']
-            slon = self.hdf_file[site].attrs['lon']
+            slat = hdf_file[site].attrs['lat']
+            slon = hdf_file[site].attrs['lon']
             st = time.time()
             count = 0
-            for sat in self.hdf_file[site]:
-                sat_data = self.hdf_file[site][sat]
+            for sat in hdf_file[site]:
+                sat_data = hdf_file[site][sat]
                 arr = np.empty((len(sat_data['tec']),), 
                                list(zip(self.FIELDS,self.DTYPE)))
                 el = sat_data['elevation'][:]

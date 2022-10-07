@@ -1,3 +1,4 @@
+import os
 import argparse
 import time
 import numpy as np
@@ -23,20 +24,21 @@ from plotN import (plot_and_save,
 
 def __populate_out_path(args):
     date = args.date
+    mag = args.mag_type
     out_path = args.out_path
     if out_path:
         if not args.modip_file:
-            args.modip_file = out_path / f'prepared_modip_{date}.npz'
+            args.modip_file = out_path / f'prepared_mdip_{date}.npz'
         if not args.mag_file:
             args.mag_file = out_path /f'prepared_mag_{date}.npz'
         if not args.weight_file:
-            args.weight_file = out_path / f'weights_{date}.npz'
+            args.weight_file = out_path / f'weights_{mag}_{date}.npz'
         if not args.lcp_file:
-            args.lcp_file = out_path / f'lcp_{date}.npz'
+            args.lcp_file = out_path / f'lcp_{mag}_{date}.npz'
         if not args.maps_file:
-            args.maps_file = out_path / f'maps_{date}.npz'
+            args.maps_file = out_path / f'maps_{mag}_{date}.npz'
         if not args.animation_file:
-            args.animation_file = out_path / f'animation_{date}.mp4'
+            args.animation_file = out_path / f'animation_{mag}_{date}.mp4'
 
 def __parser_args(command=''):
     parser = argparse.ArgumentParser(description='Prepare data from txt, hdf, or RInEx')
@@ -107,6 +109,7 @@ def __parser_args(command=''):
         args = parser.parse_args(command.split())
     else:
         args = parser.parse_args()
+    os.makedirs(args.out_path, exist_ok=True)
     if args.process_type == ProcessingType.ranged and (args.ndays is None):
         parser.error("Ranged processing requires --ndays")
     if args.process_type == ProcessingType.ranged:
