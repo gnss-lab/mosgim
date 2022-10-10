@@ -80,6 +80,13 @@ def process_data(data_generator):
     all_data = defaultdict(list)
     count = 0
     for data, data_id in data_generator:
+        times = data['datetime'][:]
+        data_days = [datetime(d.year, d.month, d.day) for d in times]
+        if set(data_days) != 1:
+            msg = f'{data_id} is not processed: multiple days presented '
+            msg += f'{set(data_days)}. Skip.'
+            print(msg)
+            continue
         try:
             prepared = process_intervals(data, maxgap=35., 
                                          maxjump=2., 
