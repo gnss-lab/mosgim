@@ -109,12 +109,8 @@ class CreateLCP:
 
         return A
 
-
-if __name__ == "__main__":
+def create_lcp(data):
     logger_configuration()
-
-    input_file = 'res_data_rel_modip300_2017_002.npz'
-    output_file = 'res_data_rel_modip300_2017_002_lcp.npz'
 
     nT = 24
 
@@ -133,8 +129,6 @@ if __name__ == "__main__":
         timeindex=time_m
     )
 
-    logger.info(f"Load data {input_file}")
-    data = np.load(input_file, allow_pickle=True)
 
     Ninv = np.linalg.inv(data['N'])
     w = G.dot(data['res'])
@@ -149,10 +143,26 @@ if __name__ == "__main__":
     M = Gnew.dot(NGT)
 
     sol = lcp.lemkelcp(M, wnew, 10000)
-
+    if sol[0] is None:
+        print(sol)
     c = data['res'] + NGT.dot(sol[0])
     w = G.dot(c)
+    return c
 
-    np.savez(output_file, res=c, N=data['N'])
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='Solve raw TECs to ')
+    parser.add_argument('--in_file', 
+                        type=Path, 
+                        help='Path to data, after prepare script')
+    parser.add_argument('--out_file', 
+                        type=Path, 
+                        help='Path to data, after prepare script')
+    args = parser.parse_args()
+    inputfile = args.in_file
+    outputfile = args.out_file
+    data = np.load(inputfile, allow_pickle=True)
+    c = create_lcp(data)
+    np.savez(outputfile, res=c, N=data['N'])
 
     logger.success(f"{output_file} saved successfully")
