@@ -80,6 +80,9 @@ def process_data(data_generator):
     all_data = defaultdict(list)
     count = 0
     for data, data_id in data_generator:
+        if data.shape==():
+            print(f'No data for {data_id}')
+            continue
         times = data['datetime'][:]
         data_days = [datetime(d.year, d.month, d.day) for d in times]
         if len(set(data_days)) != 1:
