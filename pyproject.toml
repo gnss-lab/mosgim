@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "mosgim"
+version = "0.1.0"
+description = "Set of functions to produce GIM from set of TEC series"
+authors = ["Artem Padokhin <padokhin@physics.msu.ru>", "Artem Vesnin <artem_vesnin@iszf.irk.ru>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "==3.10.4"
+numpy = "1.23.3"
+scipy = "1.9.1"
+pyIGRF = "0.3.3"
+celluloid = "0.2.0"
+matplotlib = "3.5.3"
+loguru = "0.6.0"
+tqdm = "4.64.1"
+lemkelcp = {git = "https://github.com/AndyLamperski/lemkelcp"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
