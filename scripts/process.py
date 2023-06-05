@@ -6,9 +6,6 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 
-import sys
-sys.path.append('../')
-
 from mosgim.loader.tec_prepare import (DataSourceType,
                                        MagneticCoordType,
                                        ProcessingType,
