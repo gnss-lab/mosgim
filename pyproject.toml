@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "==3.10.4"
+python = ">=3.10,<3.12"
 numpy = "1.23.3"
 scipy = "1.9.1"
 pyIGRF = "0.3.3"
@@ -16,6 +16,7 @@ matplotlib = "3.5.3"
 loguru = "0.6.0"
 tqdm = "4.64.1"
 lemkelcp = {git = "https://github.com/AndyLamperski/lemkelcp"}
+h5py = "^3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"
