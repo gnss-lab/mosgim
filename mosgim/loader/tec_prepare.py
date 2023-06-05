@@ -10,10 +10,10 @@ from pathlib import Path
 from enum import Enum
 from concurrent.futures import ProcessPoolExecutor
 
-from geomag import geo2mag
-from geomag import geo2modip
-from time_util import sec_of_day, sec_of_interval
-from loader import LoaderTxt, LoaderHDF
+from mosgim.geo.geomag import geo2mag
+from mosgim.geo.geomag import geo2modip
+from mosgim.utils.time_util import sec_of_day, sec_of_interval
+from mosgim.loader.loader import LoaderTxt, LoaderHDF
 
 sites = ['019b', '7odm', 'ab02', 'ab06', 'ab09', 'ab11', 'ab12', 'ab13',
          'ab15', 'ab17', 'ab21', 'ab27', 'ab33', 'ab35', 'ab37', 'ab41',

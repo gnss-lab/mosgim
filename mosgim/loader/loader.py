@@ -10,8 +10,8 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 from numpy import cos, sin, sqrt, arctan, arctan2, rad2deg
 
-from geo import HM
-from geo import sub_ionospheric
+from mosgim.geo.geo import HM
+from mosgim.geo.geo import sub_ionospheric
 
 
 class Loader():
@@ -102,6 +102,7 @@ class LoaderTxt(Loader):
                         queue.append(query)
                     except Exception as e:
                         print(f'{sat_file} not processed. Reason: {e}')
+                print(site)
             for v in concurrent.futures.as_completed(queue):
                 yield v.result()
 

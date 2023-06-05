@@ -1,7 +1,8 @@
 import pyIGRF.calculate as calculate
 import numpy as np
-from geo import subsol
-from time_util import sec_of_day
+
+from .geo import subsol
+from mosgim.utils.time_util import sec_of_day
 # GEOMAGNETIC AND MODIP COORDINATES SECTION
 
 # North magnetic pole coordinates, for 2017

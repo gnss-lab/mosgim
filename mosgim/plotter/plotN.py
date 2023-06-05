@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime, timedelta
 import scipy.special as sp
-from geomag import geo2mag
-from geomag import geo2modip
-from tec_prepare import MagneticCoordType
+from mosgim.geo.geomag import geo2mag
+from mosgim.geo.geomag import geo2modip
+from mosgim.loader.tec_prepare import MagneticCoordType
 
 def make_matrix(nbig, mbig, theta, phi):
     n_ind = np.arange(0, nbig + 1, 1)

@@ -6,21 +6,24 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from tec_prepare import (DataSourceType,
-                         MagneticCoordType,
-                         ProcessingType,
-                         process_data,
-                         combine_data,
-                         get_data,
-                         save_data,
-                         sites,
-                         calculate_seed_mag_coordinates_parallel)
-from loader import (LoaderHDF, 
+import sys
+sys.path.append('../')
+
+from mosgim.loader.tec_prepare import (DataSourceType,
+                                       MagneticCoordType,
+                                       ProcessingType,
+                                       process_data,
+                                       combine_data,
+                                       get_data,
+                                       save_data,
+                                       sites,
+                                       calculate_seed_mag_coordinates_parallel)
+from mosgim.loader.loader import (LoaderHDF, 
                     LoaderTxt)
-from mosgim import solve_weights
-from createLCP import create_lcp
-from plotN import (plot_and_save, 
-                   calculate_maps)
+from mosgim.mosg.mosgim import solve_weights
+from mosgim.mosg.createLCP import create_lcp
+from mosgim.plotter.plotN import (plot_and_save, 
+                                  calculate_maps)
 
 def __populate_out_path(args):
     date = args.date
