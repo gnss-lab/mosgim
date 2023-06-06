@@ -1,19 +1,16 @@
 import numpy as np
-import time
 import concurrent.futures
 
 from numpy import deg2rad as rad
 from datetime import datetime
 from scipy.signal import savgol_filter
 from collections import defaultdict
-from pathlib import Path
 from enum import Enum
 from concurrent.futures import ProcessPoolExecutor
 
 from mosgim.geo.geomag import geo2mag
 from mosgim.geo.geomag import geo2modip
 from mosgim.utils.time_util import sec_of_day, sec_of_interval
-from mosgim.loader.loader import LoaderTxt, LoaderHDF
 
 sites = ['019b', '7odm', 'ab02', 'ab06', 'ab09', 'ab11', 'ab12', 'ab13',
          'ab15', 'ab17', 'ab21', 'ab27', 'ab33', 'ab35', 'ab37', 'ab41',
@@ -286,47 +283,5 @@ def get_data(comb, mtype, day_date):
                 el_ref = rad(comb['rel']), 
                 rhs = comb['tec'])    
     return data
-    
-    
 
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='Prepare data from txt, hdf, or RInEx')
-    parser.add_argument('--data_path', 
-                        type=Path, 
-                        help='Path to data, content depends on format')
-    parser.add_argument('--data_source', 
-                        type=DataSourceType, 
-                        help='Path to data, content depends on format')
-    parser.add_argument('--date',  
-                        type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
-                        help='Date of data, example 2017-01-02')
-    parser.add_argument('--modip_file',  
-                        type=Path,
-                        default=Path('/tmp/prepared_modip.npz'),
-                        help='Path to file with results, for modip')
-    parser.add_argument('--mag_file',  
-                        type=Path,
-                        default=Path('/tmp/prepared_mag.npz'),
-                        help='Path to file with results, for magnetic lat')
-    parser.add_argument('--nsite',  
-                        type=int,
-                        help='Number of sites to take into calculations')
-    args = parser.parse_args()
-    process_date = args.date
-    if args.nsites:
-        sites = sites[:args.nsites]
-    if args.data_source == DataSourceType.hdf:
-        loader = LoaderHDF(args.data_path)
-        data_generator = loader.generate_data(sites=sites)
-    if args.data_source == DataSourceType.txt:
-        loader = LoaderTxt(args.data_path)
-        data_generator = loader.generate_data(sites=sites)
-    data = process_data(data_generator)
-    data_chunks = combine_data(data, nchunks=1)
-    print('Start magnetic calculations...')
-    st = time.time()
-    #calc_mag_coordinates(combined_data)
-    result = calculate_seed_mag_coordinates_parallel(data_chunks)
-    print(f'Done, took {time.time() - st}')
-    save_data(result, args.modip_file, args.mag_file, process_date)
+

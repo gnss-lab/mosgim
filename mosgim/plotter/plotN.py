@@ -76,8 +76,3 @@ def plot_and_save(maps, animation_file, maps_file, **kwargs):
     anim.save(animation_file)
     np.savez(maps_file, maps)
 
-
-if __name__ == '__main__':
-    data = np.load('res_data_rel_modip300_2017_002_lcp.npz', allow_pickle=True)
-    maps = calculate_maps(data['res'], MagneticCoordType.mdip, datetime(2017, 1, 2))
-    plot_and_save(maps, 'animation.mp4', 'maps.npz')

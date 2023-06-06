@@ -149,20 +149,3 @@ def create_lcp(data):
     w = G.dot(c)
     return c
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Solve raw TECs to ')
-    parser.add_argument('--in_file', 
-                        type=Path, 
-                        help='Path to data, after prepare script')
-    parser.add_argument('--out_file', 
-                        type=Path, 
-                        help='Path to data, after prepare script')
-    args = parser.parse_args()
-    inputfile = args.in_file
-    outputfile = args.out_file
-    data = np.load(inputfile, allow_pickle=True)
-    c = create_lcp(data)
-    np.savez(outputfile, res=c, N=data['N'])
-
-    logger.success(f"{output_file} saved successfully")

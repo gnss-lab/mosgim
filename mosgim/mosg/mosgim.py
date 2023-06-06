@@ -239,19 +239,3 @@ def solve_weights(data, gigs=2, nworkers=3, linear=True):
                                    linear=linear) 
     return res, N
 
-
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='Solve raw TECs to ')
-    parser.add_argument('--in_file', 
-                        type=Path, 
-                        help='Path to data, after prepare script')
-    parser.add_argument('--out_file', 
-                        type=Path, 
-                        help='Path to data, after prepare script')
-    args = parser.parse_args()
-    inputfile = args.in_file
-    outputfile = args.out_file
-    data = np.load(inputfile, allow_pickle=True)
-    res, N = solve_weights(data)
-    np.savez(outputfile, res=res, N=N)
