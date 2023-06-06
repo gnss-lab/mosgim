@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from loguru import logger
 
-from mosgim.mosg.createLCP import create_lcp as crelcp
+from mosgim.mosg.lcp_solver import create_lcp as crelcp
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Solve raw TECs to ')

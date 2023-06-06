@@ -12,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 from mosgim.geo.geomag import geo2mag
 from mosgim.geo.geomag import geo2modip
-from mosgim.loader.tec_prepare import MagneticCoordType
+from mosgim.data.tec_prepare import MagneticCoordType
 
 RE = 6371200.
 IPPh = 450000.

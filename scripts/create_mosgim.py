@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 
 from pathlib import Path
-from mosgim.mosg.mosgim import solve_weights
+from mosgim.mosg.map_creator import solve_weights
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Solve raw TECs to ')

@@ -4,9 +4,9 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 
-from mosgim.loader.tec_prepare import MagneticCoordType
-from mosgim.plotter.plotN import plot_and_save
-from mosgim.mosg.mosgim import calculate_maps
+from mosgim.data.tec_prepare import MagneticCoordType
+from mosgim.plotter.animation import plot_and_save
+from mosgim.mosg.map_creator import calculate_maps
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Solve raw TECs to ')

@@ -5,14 +5,14 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 
-from mosgim.loader.loader import (LoaderTxt, 
-                                  LoaderHDF)
-from mosgim.loader.tec_prepare import (process_data,
-                                       combine_data,
-                                       calculate_seed_mag_coordinates_parallel,
-                                       save_data,
-                                       sites,
-                                       DataSourceType)
+from mosgim.data.loader import (LoaderTxt, 
+                                LoaderHDF)
+from mosgim.data.tec_prepare import (process_data,
+                                     combine_data,
+                                     calculate_seed_mag_coordinates_parallel,
+                                     save_data,
+                                     sites,
+                                     DataSourceType)
 
 
 if __name__ == '__main__':
