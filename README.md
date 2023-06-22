@@ -2,6 +2,8 @@
 
 Technique for Global Ionopsheric Maps. 
 
+![MosGIM sample output](animation.gif)
+
 ## Prerequirements 
 
 Code and launch were tested for Linux (Ubuntu) and [Anaconda](https://www.anaconda.com/download). Other operating systems should support calculation as well. Please modify Startup script for your needs. For Windows users, you may need install bash command support, to use script below (paths should be fixed nevertheless):
