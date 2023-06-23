@@ -4,6 +4,14 @@ Technique for Global Ionopsheric Maps.
 
 ![MosGIM sample output](animation.gif)
 
+## Rules of road
+
+Algorithm description is given in (cite if using code for your research): 
+
+    Padokhin, A. M., E. S. Andreeva, M. O. Nazarenko, and S. A. Kalashnikova. "Phase-Difference Approach for GNSS Global Ionospheric Total Electron Content Mapping." Radiophysics and Quantum Electronics, 65(7): 481-495, 2023
+    
+Find full text paper [here](https://www.researchgate.net/profile/Artem-Padokhin/publication/370183741_Phase-Difference_Approach_for_GNSS_Global_Ionospheric_Total_Electron_Content_Mapping/links/64437a00d749e4340e2cb413/Phase-Difference-Approach-for-GNSS-Global-Ionospheric-Total-Electron-Content-Mapping.pdf)
+
 ## Prerequirements 
 
 Code and launch were tested for Linux (Ubuntu) and [Anaconda](https://www.anaconda.com/download). Other operating systems should support calculation as well. Please modify Startup script for your needs. For Windows users, you may need install bash command support, to use script below (paths should be fixed nevertheless):
